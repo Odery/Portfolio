@@ -1,0 +1,13 @@
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
