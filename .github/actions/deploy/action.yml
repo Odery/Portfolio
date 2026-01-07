@@ -1,4 +1,4 @@
-name: 'Build and Deploy'
+name: 'SSH Deploy'
 author: 'Odery'
 description: 'Builds the Go binary and deploys it via SSH to remote server.'
 inputs:
@@ -11,21 +11,12 @@ inputs:
   ssh-user:
     description: 'SSH user for the remote server'
     required: true
-  git-sha:
-    description: 'Git SHA for metadata'
+  artifact-path:
+    description: 'Path to the binary file to be deployed'
     required: true
-  git-ref:
-    description: 'Git branch ref for metadata'
-    required: true
-
 runs:
   using: composite
   steps:
-    - name: Build Application
-      shell: bash
-      run: |
-        echo "--- 1. Build Application ---"
-        go build -ldflags="-X 'main.GitCommitSHA=${{ inputs.git-sha }}' -X 'main.GitBranch=${{ inputs.git-ref }}'" -o artefact ./cmd/PortfolioWebsite
 
     - name: Configure SSH
       shell: bash
@@ -33,7 +24,7 @@ runs:
         SSH_KEY: ${{ inputs.ssh-key }}
         SSH_HOST: ${{ inputs.ssh-host }}
       run: |
-        echo "--- 2. Configure SSH ---"
+        echo "--- 1. Configure SSH ---"
         mkdir -p ~/.ssh
         echo "$SSH_KEY" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
@@ -43,9 +34,8 @@ runs:
       env:
           SSH_USER: ${{ inputs.ssh-user }}
           SSH_HOST: ${{ inputs.ssh-host }}
+          ARTIFACT: ${{ inputs.artifact-path }}
       run: |
-        echo "--- 3. Deploy Application ---"
-        gzip -c artefact | ssh -i ~/.ssh/deploy_key "$SSH_USER"@"$SSH_HOST"
-        
-        
-        
+        echo "--- 2. Ship Binary ---"
+        # It is a forced command on the SSH, so we just pipe data to the script on the remote server.
+        gzip -c "$ARTIFACT" | ssh -i ~/.ssh/deploy_key "$SSH_USER"@"$SSH_HOST"
